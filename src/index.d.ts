@@ -1,14 +1,13 @@
-type ExpectValue = (expectedValue: any) => void;
-type ExpectFunction = (callback: Function) => any;
+type ExpectMethod = (expectedValue: any) => void;
 interface Expectation {
-	toBe: ExpectValue,
-	toNotBe: ExpectValue,
-	toReturn: ExpectFunction,
-	toNotReturn: ExpectFunction,
-	toThrow: ExpectFunction,
-	toNotThrow: ExpectFunction
+	toBe: ExpectMethod,
+	toNotBe: ExpectMethod,
+	toReturn: ExpectMethod,
+	toNotReturn: ExpectMethod,
+	toThrow: ExpectMethod,
+	toNotThrow: ExpectMethod
 }
-type TestFunction = (expect: (anyValue: any) => Expectation) => any;
+type TestFunction = (expect: (actualValue: any) => Expectation) => any;
 
 //TODO: JSDoc
 export default class UnitTest {
