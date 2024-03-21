@@ -2,7 +2,7 @@
 	"name": "js-test",
 	"type": "module",
 	"version": "1.0.0",
-	"description": "Low budget expect-based unit testing functions. Isolates between invocations and safely contains everything that can go wrong.",
+	"description": "A small system for creating unit tests. Each test is isolated. The module safely contains everything that can go wrong.",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"scripts": {
