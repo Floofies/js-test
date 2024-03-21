@@ -12,5 +12,7 @@ type TestFunction = (expect: (anyValue: any) => Expectation) => any;
 
 //TODO: JSDoc
 export default class UnitTest {
-	constructor(description: string, testFunction: TestFunction)
+	history: string[][];
+	emit: boolean;
+	test(description: string, testFunction: TestFunction): Promise<boolean>
 }
