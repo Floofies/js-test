@@ -1,4 +1,13 @@
 import Expectation from "./Expectation.js";
+function promiseWithResolvers() {
+    let resolve;
+    let reject;
+    const promise = new Promise((res, rej) => {
+        resolve = res;
+        reject = rej;
+    });
+    return { promise, resolve, reject };
+}
 export default class UnitTest {
     testQueue = [];
     /** Logs from past tests. */
@@ -11,10 +20,14 @@ export default class UnitTest {
     * @param {Function} [testFunction] A testing function with an `expect` function as the input parameter.
     */
     queueTest(description, testFunction) {
+        const testPromise = promiseWithResolvers();
         this.testQueue.push({
+            promise: testPromise.promise,
+            resolve: testPromise.resolve,
             callback: testFunction,
             desc: description
         });
+        return testPromise.promise;
     }
     /**
     * Executes any tests which were previously queued via `queueTest`.
@@ -22,9 +35,13 @@ export default class UnitTest {
     * @returns {Promise<boolean>[]} An array of promises which resolve to booleans which indicate if the tests passed or failed.
     */
     runTests(dequeue = true) {
-        const testPromises = [];
-        for (const test of this.testQueue)
-            testPromises.push(this.test(test.desc, test.callback));
+        for (const testDescriptor of this.testQueue) {
+            const promise = this.test(testDescriptor.desc, testDescriptor.callback).then((status) => {
+                testDescriptor.resolve(status);
+                return status;
+            });
+        }
+        const testPromises = this.testQueue.map(testDescriptor => testDescriptor.promise);
         if (dequeue)
             this.testQueue = [];
         return testPromises;

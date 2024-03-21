@@ -3,22 +3,23 @@ import UnitTest from "./index.js";
 import Expectation from "./Expectation.js";
 // Tracks success/failure of the tests
 const testPromises = [];
+const testFailures = [];
 function addTest(testPromise, shouldFail = false) {
     const testNumber = testPromises.length + 1;
     testPromises.push(testPromise.then(status => {
         if (status && shouldFail) {
             process.exitCode = 1;
-            console.error(`js-test: Test #${testNumber} passed when it was expected to fail!`);
+            testFailures.push(`js-test: Test #${testNumber} passed when it was expected to fail!`);
         }
         else if (!status && !shouldFail) {
             process.exitCode = 1;
-            console.error(`js-test: Test #${testNumber} failed when it was expected to pass!`);
+            testFailures.push(`js-test: Test #${testNumber} failed when it was expected to pass!`);
         }
         return status;
     }));
 }
 console.log("js-test: Starting unit tests . . .\n");
-const jsTest = new UnitTest();
+const jsTest = new UnitTest;
 addTest(jsTest.test("1. unitTest should fail if no expectations were supplied", expect => {
     // Nothing
 }), true);
@@ -114,37 +115,62 @@ addTest(jsTest.test("13. expect.toNotThrow() should fail when the thrown error m
     expect(testFunction).toNotThrow();
     expect(testFunction).toNotThrow(TestError);
 }), true);
+// Queueing functions
+const jsTest2 = new UnitTest;
+addTest(jsTest2.queueTest("14. queueTest should pass when expected", expect => {
+    expect(true).toBe(true);
+}));
+addTest(new Promise(resolve => {
+    const results = jsTest2.runTests();
+    if (Array.isArray(results) && results.length) {
+        const promise = results[0];
+        promise.then(resolve);
+    }
+    else {
+        resolve(false);
+    }
+}));
+const jsTest3 = new UnitTest;
+addTest(jsTest3.queueTest("15. queueTest should fail when expected", expect => {
+    expect(true).toBe(false);
+}), true);
+addTest(new Promise(resolve => {
+    const results = jsTest3.runTests();
+    if (Array.isArray(results) && results.length) {
+        const promise = results[0];
+        promise.then(resolve);
+    }
+    else {
+        resolve(false);
+    }
+}), true);
 // Expectation methods should throw errors upon failure
-addTest((() => {
-    return new Promise(resolve => {
-        const cb = function (condition) {
-            try {
-                condition();
-                resolve(false);
-            }
-            catch (error) {
-                resolve(true);
-            }
-        };
-        const expect = new Expectation(cb, "TestValue");
-        expect.toBe("Not TestValue");
-    });
-})());
-addTest((() => {
-    return new Promise(resolve => {
-        const cb = function (condition) {
-            try {
-                condition();
-                resolve(false);
-            }
-            catch (error) {
-                resolve(true);
-            }
-        };
-        const expect = new Expectation(cb, "TestValue");
-        expect.toNotBe("TestValue");
-    });
-})());
+addTest(new Promise(resolve => {
+    const cb = function (condition) {
+        try {
+            condition();
+            resolve(false);
+        }
+        catch (error) {
+            resolve(true);
+        }
+    };
+    const expect = new Expectation(cb, "TestValue");
+    expect.toBe("Not TestValue");
+}));
+addTest(new Promise(resolve => {
+    const cb = function (condition) {
+        try {
+            condition();
+            resolve(false);
+        }
+        catch (error) {
+            resolve(true);
+        }
+    };
+    const expect = new Expectation(cb, "TestValue");
+    expect.toNotBe("TestValue");
+}));
 Promise.all(testPromises).then((testResults) => {
     const totalPassed = testResults.filter(status => status === true).length;
     const totalFailed = testResults.filter(status => status === false).length;
@@ -153,6 +179,8 @@ Promise.all(testPromises).then((testResults) => {
         console.log(`js-test: ${totalPassed} unit tests passed successfully.`);
     if (totalFailed > 0)
         console.log(`js-test: ${totalFailed} unit tests failed.`);
+    if (testFailures.length)
+        console.log(testFailures.join("\n"));
     if (!process.exitCode)
         console.log("js-test: OK");
     else

@@ -1,9 +1,24 @@
 import Expectation from "./Expectation.js";
 
 type TestFunction = (expect: (anyValue: any) => Expectation) => any;
+interface TestDescriptor {
+	promise: Promise<any>,
+	resolve: (status: boolean) => any,
+	callback: TestFunction, desc: string
+}
+
+function promiseWithResolvers() {
+	let resolve;
+	let reject;
+	const promise: Promise<any> = new Promise((res, rej) => {
+		resolve = res;
+		reject = rej;
+	});
+	return { promise, resolve, reject };
+}
 
 export default class UnitTest {
-	testQueue: { callback: TestFunction, desc: string }[] = [];
+	testQueue: TestDescriptor[] = [];
 	/** Logs from past tests. */
 	history: string[][] = [];
 	/** A boolean which indicates if the tests should emit logs to console. */
@@ -14,11 +29,15 @@ export default class UnitTest {
 	* @param {string} description A string to describe the test in logs.
 	* @param {Function} [testFunction] A testing function with an `expect` function as the input parameter.
 	*/
-	queueTest(description: string, testFunction: TestFunction): void {
+	queueTest(description: string, testFunction: TestFunction): Promise<boolean> {
+		const testPromise = promiseWithResolvers();
 		this.testQueue.push({
+			promise: testPromise.promise,
+			resolve: testPromise.resolve,
 			callback: testFunction,
 			desc: description
 		});
+		return testPromise.promise;
 	}
 
 	/**
@@ -26,11 +45,15 @@ export default class UnitTest {
 	* @param {boolean} [dequeue=true] A boolean which indicates if the test queue should be deleted after executing.
 	* @returns {Promise<boolean>[]} An array of promises which resolve to booleans which indicate if the tests passed or failed.
 	*/
-	runTests(dequeue:boolean = true): Promise<boolean>[] {
-		const testPromises: Promise<boolean>[] = [];
-		for (const test of this.testQueue)
-			testPromises.push(this.test(test.desc, test.callback));
-		if(dequeue)
+	runTests(dequeue: boolean = true): Promise<boolean>[] {
+		for (const testDescriptor of this.testQueue) {
+			const promise = this.test(testDescriptor.desc, testDescriptor.callback).then((status:boolean) => {
+				testDescriptor.resolve(status);
+				return status;
+			});
+		}
+		const testPromises = this.testQueue.map(testDescriptor => testDescriptor.promise);
+		if (dequeue)
 			this.testQueue = [];
 		return testPromises;
 	}
