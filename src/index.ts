@@ -34,8 +34,12 @@ export default class UnitTest {
 		}
 
 		// The test can't continue if the test callback threw an error:
-		if (caughtError)
+		if (caughtError) {
+			// Emit console messages if enabled:
+			if (this.emit)
+				console.log(testLog.join("\n") + "\n");
 			return false;
+		}
 
 		let totalExp = 0;
 

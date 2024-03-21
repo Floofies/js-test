@@ -29,8 +29,12 @@ export default class UnitTest {
             caughtError = true;
         }
         // The test can't continue if the test callback threw an error:
-        if (caughtError)
+        if (caughtError) {
+            // Emit console messages if enabled:
+            if (this.emit)
+                console.log(testLog.join("\n") + "\n");
             return false;
+        }
         let totalExp = 0;
         // Attempt to execute the queue of expectations:
         for (const expectation of expectQueue) {
