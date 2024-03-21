@@ -1,0 +1,32 @@
+{
+	"name": "js-test",
+	"type": "module",
+	"version": "1.0.0",
+	"description": "Low budget expect-based unit testing functions. Isolates between invocations and safely contains everything that can go wrong.",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"scripts": {
+		"test": "npm run build && node dist/test.js",
+		"build": "tsc src/test.ts src/index.ts --module nodenext --lib es6 --outDir dist/ && cp src/index.d.ts dist/"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/Floofies/js-test.git"
+	},
+	"keywords": [
+		"unit-test",
+		"testing",
+		"expect",
+		"bdd"
+	],
+	"author": "Dani Glore",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/Floofies/js-test/issues"
+	},
+	"homepage": "https://github.com/Floofies/js-test#readme",
+	"devDependencies": {
+		"@types/node": "^18.15.13",
+		"typescript": "^5.3.3"
+	}
+}
