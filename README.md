@@ -5,8 +5,9 @@ Low budget expect-based unit tests. Isolates between invocations and safely cont
 # Usage
 
 1. Import and instantiate the `UnitTest` class.
-2. Invoke method `test`. Supply a description and callback with an `expect` parameter.
-4. Invoke the BDD testing methods of the supplied `expect` object.
+2. Invoke method `test`, supply a description and callback with an `expect` parameter.
+3. Invoke the supplied `expect` function, supply the test data.
+4. Invoke the BDD testing methods of the returned object.
 
 ```JS
 import UnitTest from "js-test";
@@ -30,7 +31,7 @@ Console output:
 
 ```
 Test "My Test":
-        ƒ Test started 2024-03-21T02:35:44.098Z . . .
+        ƒ Test started 2024-03-21T02:35:44.098Z
         ✓ Test PASSED in 0.081ms
 
 Test passed!
