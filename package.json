@@ -6,6 +6,7 @@
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"scripts": {
+		"prepublishOnly": "npm run test",
 		"test": "npm run build && node dist/test.js",
 		"build": "tsc src/test.ts src/index.ts --module nodenext --lib es6 --outDir dist/ && cp src/index.d.ts dist/"
 	},
