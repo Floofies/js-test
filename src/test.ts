@@ -1,78 +1,86 @@
 #!/usr/bin/env node
 import UnitTest from "./index.js";
-
-const jsTest = new UnitTest();
+import Expectation from "./Expectation.js";
 
 // Tracks success/failure of the tests
-const testPromises: Promise<void>[] = [];
-function addTest(testPromise: Promise<boolean>, shouldFail: boolean = false): void {
+const testPromises: Promise<boolean>[] = [];
+function addTest(testPromise: Promise<boolean>, shouldFail: boolean = false) {
+	const testNumber = testPromises.length + 1;
 	testPromises.push(testPromise.then(status => {
-		if (status && shouldFail)
-			throw new Error("Test passed when it was expected to fail!");
-		else if (!status && !shouldFail)
-			throw new Error("Test failed when it was expected to pass!");
+		if (status && shouldFail) {
+			process.exitCode = 1;
+			console.error(`js-test: Test #${testNumber} passed when it was expected to fail!`);
+		} else if (!status && !shouldFail) {
+			process.exitCode = 1;
+			console.error(`js-test: Test #${testNumber} failed when it was expected to pass!`);
+		}
+		return status;
 	}));
 }
 
-addTest(jsTest.test("unitTest should fail if no expectations were supplied", expect => {
+console.log("js-test: Starting unit tests . . .\n");
+
+const jsTest = new UnitTest();
+
+addTest(jsTest.test("1. unitTest should fail if no expectations were supplied", expect => {
 	// Nothing
 }), true);
 
-addTest(jsTest.test("expect.toBe() should pass when expected", expect => {
+addTest(jsTest.test("2. expect.toBe() should pass when the actual value matches the expected value", expect => {
 	expect(true).toBe(true);
 	const obj = {};
 	expect(obj).toBe(obj);
 }));
 
-addTest(jsTest.test("expect.toBe() should fail when expected", expect => {
+addTest(jsTest.test("3. expect.toBe() should fail when the actual value does not match the expected value", expect => {
 	expect(true).toBe(false);
 	const obj1 = {};
 	const obj2 = {};
 	expect(obj1).toBe(obj2);
 }), true);
 
-addTest(jsTest.test("expect.toNotBe() should pass when expected", expect => {
+addTest(jsTest.test("4. expect.toNotBe() should pass when the actual value does not match the expected value", expect => {
 	expect(true).toNotBe(false);
 	const obj1 = {};
 	const obj2 = {};
 	expect(obj1).toNotBe(obj2);
 }));
 
-addTest(jsTest.test("expect.toNotBe() should fail when expected", expect => {
+addTest(jsTest.test("5. expect.toNotBe() should fail when the actual value matches the expected value", expect => {
 	expect(true).toNotBe(true);
 	const obj = {};
 	expect(obj).toNotBe(obj);
 }), true);
 
-addTest(jsTest.test("expect.toReturn() should pass when expected", expect => {
+addTest(jsTest.test("6. expect.toReturn() should pass when the returned value matches the expected value", expect => {
 	function testFunction() {
 		return "foobar";
 	}
 	expect(testFunction).toReturn("foobar");
 }));
 
-addTest(jsTest.test("expect.toReturn() should fail when expected", expect => {
+addTest(jsTest.test("7. expect.toReturn() should fail when the returned value does not match the expected value", expect => {
 	function testFunction() {
 		return "foobar";
 	}
 	expect(testFunction).toReturn("baz");
 }), true);
 
-addTest(jsTest.test("expect.toNotReturn() should pass when expected", expect => {
+addTest(jsTest.test("8. expect.toNotReturn() should pass when the returned value does not match the expected value", expect => {
 	function testFunction() {
 		return "foobar";
 	}
 	expect(testFunction).toNotReturn("baz");
 }));
 
-addTest(jsTest.test("expect.toNotReturn() should fail when expected", expect => {
+addTest(jsTest.test("9. expect.toNotReturn() should fail when the returned value matches the expected value", expect => {
 	function testFunction() {
 		return "foobar";
 	}
 	expect(testFunction).toNotReturn("foobar");
 }), true);
 
-addTest(jsTest.test("expect.toThrow() should pass when expected", expect => {
+addTest(jsTest.test("10. expect.toThrow() should pass when the thrown error matches the expected error", expect => {
 	class TestError extends Error { }
 	function testFunction() {
 		throw new TestError("Test Error");
@@ -81,7 +89,7 @@ addTest(jsTest.test("expect.toThrow() should pass when expected", expect => {
 	expect(testFunction).toThrow(TestError);
 }));
 
-addTest(jsTest.test("expect.toThrow() should fail when expected", expect => {
+addTest(jsTest.test("11. expect.toThrow() should fail when the thrown error does not match the expected error", expect => {
 	class TestError1 extends Error { }
 	class TestError2 extends Error { }
 	function testFunction() {
@@ -94,7 +102,7 @@ addTest(jsTest.test("expect.toThrow() should fail when expected", expect => {
 	expect(testFunction).toThrow(TestError2);
 }), true);
 
-addTest(jsTest.test("expect.toNotThrow() should pass when expected", expect => {
+addTest(jsTest.test("12. expect.toNotThrow() should pass when the thrown error does not match the expected error", expect => {
 	class TestError1 extends Error { }
 	class TestError2 extends Error { }
 	function testFunction() {
@@ -107,7 +115,7 @@ addTest(jsTest.test("expect.toNotThrow() should pass when expected", expect => {
 	expect(testFunction).toNotThrow(TestError2);
 }));
 
-addTest(jsTest.test("expect.toNotThrow() should fail when expected", expect => {
+addTest(jsTest.test("13. expect.toNotThrow() should fail when the thrown error matches the expected error", expect => {
 	class TestError extends Error { }
 	function testFunction() {
 		throw new TestError("Test Error");
@@ -116,6 +124,46 @@ addTest(jsTest.test("expect.toNotThrow() should fail when expected", expect => {
 	expect(testFunction).toNotThrow(TestError);
 }), true);
 
-Promise.all(testPromises).then(() => {
-	console.log(`✓✓✓ ${testPromises.length} unit tests passed successfully ✓✓✓`);
-})
+// Expectation methods should throw errors upon failure
+addTest((() => {
+	return new Promise(resolve => {
+		const cb = function (condition: Function) {
+			try {
+				condition();
+				resolve(false);
+			} catch (error) {
+				resolve(true);
+			}
+		};
+		const expect = new Expectation(cb, "TestValue");
+		expect.toBe("Not TestValue");
+	});
+})());
+addTest((() => {
+	return new Promise(resolve => {
+		const cb = function (condition: Function) {
+			try {
+				condition();
+				resolve(false);
+			} catch (error) {
+				resolve(true);
+			}
+		};
+		const expect = new Expectation(cb, "TestValue");
+		expect.toNotBe("TestValue");
+	});
+})());
+
+Promise.all(testPromises).then((testResults: boolean[]) => {
+	const totalPassed = testResults.filter(status => status === true).length;
+	const totalFailed = testResults.filter(status => status === false).length;
+	console.log(`js-test: ${testPromises.length} tests total.`);
+	if (totalPassed > 0)
+		console.log(`js-test: ${totalPassed} unit tests passed successfully.`);
+	if (totalFailed > 0)
+		console.log(`js-test: ${totalFailed} unit tests failed.`);
+	if (!process.exitCode)
+		console.log("js-test: OK");
+	else
+		console.error("js-test: FAIL");
+});

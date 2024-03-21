@@ -1,28 +1,60 @@
+import Expectation from "./Expectation.js";
+
 type TestFunction = (expect: (anyValue: any) => Expectation) => any;
 
-function createExpectation(expectQueue: Function[]) {
-	return (anyValue: any) => new Expectation(expectQueue, anyValue);
-}
-
 export default class UnitTest {
-	// Logs from past tests:
+	testQueue: { callback: TestFunction, desc: string }[] = [];
+	/** Logs from past tests. */
 	history: string[][] = [];
-	// A boolean which indicates if the tests should emit logs to console:
+	/** A boolean which indicates if the tests should emit logs to console. */
 	emit: boolean = true;
 
+	/**
+	* Creates a new test and immediately queues it for later execution.
+	* @param {string} description A string to describe the test in logs.
+	* @param {Function} [testFunction] A testing function with an `expect` function as the input parameter.
+	*/
+	queueTest(description: string, testFunction: TestFunction): void {
+		this.testQueue.push({
+			callback: testFunction,
+			desc: description
+		});
+	}
+
+	/**
+	* Executes any tests which were previously queued via `queueTest`.
+	* @param {boolean} [dequeue=true] A boolean which indicates if the test queue should be deleted after executing.
+	* @returns {Promise<boolean>[]} An array of promises which resolve to booleans which indicate if the tests passed or failed.
+	*/
+	runTests(dequeue:boolean = true): Promise<boolean>[] {
+		const testPromises: Promise<boolean>[] = [];
+		for (const test of this.testQueue)
+			testPromises.push(this.test(test.desc, test.callback));
+		if(dequeue)
+			this.testQueue = [];
+		return testPromises;
+	}
+
+	/**
+	* Creates a new test and immediately executes it.
+	* @param {string} description A string to describe the test in logs.
+	* @param {TestFunction} [testFunction] A testing function with an `expect` function as the input parameter.
+	* @returns {Promise<boolean>} An promise which resolves to a boolean which indicates if the test passed or failed.
+	*/
 	async test(description: string, testFunction: TestFunction): Promise<boolean> {
-		// Queue of expectation callbacks which are ready to be executed:
+		// Queue of expectation callbacks which are ready to be executed
 		const expectQueue: Function[] = [];
-		// A boolean which indicates if the test failed:
+		// A boolean which indicates if the test failed
 		let caughtError = false;
-		// Human-readable logs from the test:
+		// Human-readable logs from the test
 		const testLog = [`Test "${description}":`, `\tƒ Test started ${(new Date()).toISOString()}`];
-		// The precise time the test started at:
+		// The precise time the test started at
 		const startTime = performance.now();
 
-		// Attempt to execute the test callback to populate the expectation queue:
+		// Attempt to execute the test callback to populate the expectation queue
 		try {
-			await testFunction(createExpectation(expectQueue));
+			await testFunction(Expectation.create((expectMethod: Function) => expectQueue.push(expectMethod)));
+			// The expectation queue should be populated by now
 			if (expectQueue.length === 0) {
 				testLog.push("\t? Test FAILED: No expectations were defined!");
 				caughtError = true;
@@ -33,7 +65,7 @@ export default class UnitTest {
 			caughtError = true;
 		}
 
-		// The test can't continue if the test callback threw an error:
+		// The test can't continue if the test callback threw an error
 		if (caughtError) {
 			// Emit console messages if enabled:
 			if (this.emit)
@@ -44,11 +76,10 @@ export default class UnitTest {
 		}
 
 		let totalExp = 0;
-
-		// Attempt to execute the queue of expectations:
+		// Attempt to execute the queue of expectations
 		for (const expectation of expectQueue) {
+			totalExp++;
 			try {
-				totalExp++;
 				await expectation();
 			} catch (error) {
 				testLog.push(`\tX Expectation #${totalExp} FAIL: ${error.toString()}`);
@@ -56,100 +87,20 @@ export default class UnitTest {
 			}
 		}
 
-		// Indicate if the test failed or passed:
+		// Indicate if the test failed or passed
 		const totalTime = (performance.now() - startTime).toFixed(3);
 		if (caughtError)
 			testLog.push(`\tX Test FAILED in ${totalTime}ms`);
 		else
 			testLog.push(`\t✓ Test PASSED in ${totalTime}ms`);
 
-		// Emit console messages if enabled:
+		// Emit console messages if enabled
 		if (this.emit)
 			console.log(testLog.join("\n") + "\n");
 
-		// Save history of the test:
+		// Save history of the test
 		this.history.push(testLog);
 
 		return !caughtError;
-	}
-}
-
-class ExpectError extends Error {
-	constructor(expectType: string, message: string) {
-		super(message);
-		this.name = `expect.${expectType}`;
-	}
-};
-
-class Expectation {
-	actualValue: any;
-	expectQueue: Function[];
-
-	constructor(expectQueue: Function[], anyValue: any) {
-		this.actualValue = anyValue;
-		this.expectQueue = expectQueue;
-	}
-
-	toBe(expectedValue: any) {
-		this.expectQueue.push(() => {
-			if (expectedValue !== this.actualValue)
-				throw new ExpectError("toBe", `Expected value "${expectedValue}" but received value "${this.actualValue}" instead.`);
-		});
-	}
-	toNotBe(expectedValue: any) {
-		this.expectQueue.push(() => {
-			if (expectedValue === this.actualValue)
-				throw new ExpectError("toNotBe", `Expected value to not be "${expectedValue}".`);
-		});
-	}
-
-	toReturn(expectedValue: any) {
-		this.expectQueue.push(async () => {
-			if ((typeof this.actualValue) !== "function")
-				throw new ExpectError("toReturn", `Expected function but received value "${this.actualValue}" instead.`)
-			this.actualValue = await this.actualValue();
-			if (expectedValue !== this.actualValue)
-				throw new ExpectError("toReturn", `Expected return value to be "${expectedValue}".`);
-		});
-	}
-	toNotReturn(expectedValue: any) {
-		this.expectQueue.push(async () => {
-			if ((typeof this.actualValue) !== "function")
-				throw new ExpectError("toNotReturn", `Expected function but received value "${this.actualValue}" instead.`)
-			this.actualValue = await this.actualValue();
-			if (expectedValue === this.actualValue)
-				throw new ExpectError("toNotReturn", `Expected return value to not be "${expectedValue}".`);
-		});
-	}
-
-	toThrow(expectedError: any = null) {
-		this.expectQueue.push(async () => {
-			if ((typeof this.actualValue) !== "function")
-				throw new ExpectError("toThrow", `Expected function but received value "${this.actualValue}" instead.`);
-			try {
-				await this.actualValue();
-				if (expectedError !== null)
-					throw new ExpectError("toThrow", `Expected error ${expectedError} to be thrown.`);
-				else
-					throw new ExpectError("toThrow", `Expected an error to be thrown.`);
-			} catch (thrownError) {
-				if (expectedError !== null && !(thrownError instanceof expectedError))
-					throw new ExpectError("toThrow", `Expected error ${expectedError} to be thrown, but received "${thrownError}" instead.`);
-			}
-		});
-	}
-	toNotThrow(expectedError: any = null) {
-		this.expectQueue.push(async () => {
-			if ((typeof this.actualValue) !== "function")
-				throw new ExpectError("toNotThrow", `Expected function but received value "${this.actualValue}" instead.`);
-			try {
-				await this.actualValue();
-			} catch (thrownError) {
-				if (expectedError === null)
-					throw new ExpectError("toNotThrow", `Expected an error to not be thrown, but received "${thrownError}" instead.`);
-				if (thrownError instanceof expectedError)
-					throw new ExpectError("toNotThrow", `Expected ${thrownError} to not be thrown.`);
-			}
-		});
 	}
 }
