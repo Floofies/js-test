@@ -10,15 +10,25 @@ Execute shell command `npm run build` from the project directory to invoke the T
 
 ## Unit Test Script
 
-Execute shell command `npm run test` from the project directory to execute the above build process first, then execute the compiled unit tests in `dist/test.js`.
+Execute shell command `npm run test` from the project directory to execute compiled unit tests in `dist/test.js`.
 
-Here is an example of what you should see at the end of a successful unit test run:
+Here is an example of a *successful* unit test run:
 
 ```
-js-test: 15 tests total.
-js-test: 8 unit tests passed successfully.
-js-test: 7 unit tests failed.
+js-test: 19 tests total.
+js-test: 10 unit tests passed successfully.
+js-test: 9 unit tests failed.
 js-test: OK
+```
+
+Here is an example of a *failed* unit test run:
+
+```
+js-test: 19 tests total.
+js-test: 10 unit tests passed successfully.
+js-test: 9 unit tests failed.
+js-test: Test #15 failed when it was expected to pass!
+js-test: FAIL
 ```
 
 ### How To Add Unit Tests
