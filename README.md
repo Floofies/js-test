@@ -13,7 +13,7 @@ import UnitTest from "js-test";
 
 const myTest = new UnitTest();
 
-const testPromise = myTest.test(expect => {
+const testPromise = myTest.test("My Test", expect => {
 	expect(2+2).toBe(4);
 	expect(2+2).toNotBe(5);
 });
@@ -24,6 +24,16 @@ testPromise.then(testStatus => {
 	else
 		console.log("Test failed!");
 });
+```
+
+Console output:
+
+```
+Test "My Test":
+        ƒ Test started 2024-03-21T02:35:44.098Z . . .
+        ✓ Test PASSED in 0.081ms
+
+Test passed!
 ```
 
 # `UnitTest` Class
