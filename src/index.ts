@@ -16,7 +16,7 @@ export default class UnitTest {
 		// A boolean which indicates if the test failed:
 		let caughtError = false;
 		// Human-readable logs from the test:
-		const testLog = [`Test "${description}":`, `\tƒ Test started ${(new Date()).toISOString()} . . .`];
+		const testLog = [`Test "${description}":`, `\tƒ Test started ${(new Date()).toISOString()}`];
 		// The precise time the test started at:
 		const startTime = performance.now();
 
@@ -38,6 +38,8 @@ export default class UnitTest {
 			// Emit console messages if enabled:
 			if (this.emit)
 				console.log(testLog.join("\n") + "\n");
+			// Save history of the test:
+			this.history.push(testLog);
 			return false;
 		}
 
